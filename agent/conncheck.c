@@ -2245,7 +2245,11 @@ static gboolean priv_mark_pair_nominated (NiceAgent *agent, NiceStream *stream, 
         nice_debug ("Agent %p : priv_mark_pair_nominated: conncheck pair %p - replace with discovered pair %p",
             agent, pair, pair->discovered_pair);
         pair = pair->discovered_pair;
-        g_assert (pair->state == NICE_CHECK_DISCOVERED);
+        if (pair->state != NICE_CHECK_DISCOVERED) {
+          nice_debug ("Agent %p : discovered pair %p is in state %s, skipping nomination",
+              agent, pair, priv_state_to_string (pair->state));
+          continue;
+        }
       }
 
       /* If the received Binding request triggered a new check to be
