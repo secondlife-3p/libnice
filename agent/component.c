@@ -306,6 +306,11 @@ nice_component_clean_turn_servers (NiceAgent *agent, NiceComponent *cmp)
       if (cmp->turn_candidate) {
         relay_candidates = g_slist_append(relay_candidates, cmp->turn_candidate);
       }
+      /* Clear nominated flags before setting priority to 0, to maintain
+       * the invariant that nominated pairs imply a valid selected pair.
+       */
+      if (stream)
+        conn_check_clear_nominated_for_component (agent, stream, cmp);
       /* Bring the priority down to 0, so that it will be replaced
        * on the new run.
        */

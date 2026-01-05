@@ -2193,6 +2193,25 @@ void conn_check_update_check_list_state_for_ready (NiceAgent *agent,
 }
 
 /*
+ * Clears the nominated flag for all pairs belonging to a component.
+ * This should be called before setting selected_pair.priority to 0
+ * to maintain the invariant that nominated pairs imply a valid
+ * selected pair priority.
+ */
+void conn_check_clear_nominated_for_component (NiceAgent *agent,
+    NiceStream *stream, NiceComponent *component)
+{
+  GSList *i;
+
+  for (i = stream->conncheck_list; i; i = i->next) {
+    CandidateCheckPair *p = i->data;
+    if (p->component_id == component->id) {
+      p->nominated = FALSE;
+    }
+  }
+}
+
+/*
  * The remote party has signalled that the candidate pair
  * described by 'component' and 'remotecand' is nominated
  * for use.
@@ -2246,8 +2265,8 @@ static gboolean priv_mark_pair_nominated (NiceAgent *agent, NiceStream *stream, 
             agent, pair, pair->discovered_pair);
         pair = pair->discovered_pair;
         if (pair->state != NICE_CHECK_DISCOVERED) {
-          nice_debug ("Agent %p : discovered pair %p is in state %s, skipping nomination",
-              agent, pair, priv_state_to_string (pair->state));
+          nice_debug ("Agent %p : discovered pair %p is in state %d %s, skipping nomination",
+                      agent, pair, pair->state, priv_state_to_string (pair->state));
           continue;
         }
       }
@@ -2270,9 +2289,10 @@ static gboolean priv_mark_pair_nominated (NiceAgent *agent, NiceStream *stream, 
          */
         pair->mark_nominated_on_response_arrival = TRUE;
         res = TRUE;
-        nice_debug ("Agent %p : pair %p (%s) is %s, "
+        nice_debug ("Agent %p : pair %p (%s) is %d %s, "
             "will be nominated on response receipt.",
             agent, pair, pair->foundation,
+            pair->state,
             priv_state_to_string (pair->state));
         }
       }
@@ -3132,8 +3152,8 @@ static gboolean priv_schedule_triggered_check (NiceAgent *agent, NiceStream *str
           p = p->succeeded_pair;
         }
 
-	nice_debug ("Agent %p : Found a matching pair %p (%s) (%s) ...",
-            agent, p, p->foundation, priv_state_to_string (p->state));
+	nice_debug ("Agent %p : Found a matching pair %p (%s) %d (%s) ...",
+                agent, p, p->foundation, p->state, priv_state_to_string (p->state));
 	
 	switch (p->state) {
           case NICE_CHECK_WAITING:
