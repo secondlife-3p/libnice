@@ -186,8 +186,14 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
       continue;
     }
 
-    if (candidate == cmp->selected_pair.local)
+    if (candidate == cmp->selected_pair.local) {
+      /* Clear nominated flags before clearing selected pair to maintain
+       * the invariant that nominated pairs imply a valid selected pair.
+       */
+      if (stream)
+        conn_check_clear_nominated_for_component (agent, stream, cmp);
       nice_component_clear_selected_pair (cmp);
+    }
 
     refresh_prune_candidate (agent, candidate);
     if (candidate->sockptr != nsocket && stream) {
@@ -215,8 +221,14 @@ nice_component_remove_socket (NiceAgent *agent, NiceComponent *cmp,
       continue;
     }
 
-    if (candidate == cmp->selected_pair.remote)
+    if (candidate == cmp->selected_pair.remote) {
+      /* Clear nominated flags before clearing selected pair to maintain
+       * the invariant that nominated pairs imply a valid selected pair.
+       */
+      if (stream)
+        conn_check_clear_nominated_for_component (agent, stream, cmp);
       nice_component_clear_selected_pair (cmp);
+    }
 
     if (stream)
       conn_check_prune_socket (agent, stream, cmp, candidate->sockptr);
@@ -521,6 +533,15 @@ nice_component_restart (NiceComponent *cmp, NiceAgent *agent)
 
   while ((c = g_queue_pop_head (&cmp->incoming_checks)))
     incoming_check_free (c);
+
+  /* Clear nominated flags before setting priority to 0, to maintain
+   * the invariant that nominated pairs imply a valid selected pair.
+   */
+  {
+    NiceStream *stream = agent_find_stream (agent, cmp->stream_id);
+    if (stream)
+      conn_check_clear_nominated_for_component (agent, stream, cmp);
+  }
 
   /* Reset the priority to 0 to make sure we get a new pair */
   cmp->selected_pair.priority = 0;
