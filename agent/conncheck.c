@@ -2601,6 +2601,23 @@ static void candidate_check_pair_free (NiceAgent *agent,
 {
   priv_remove_pair_from_triggered_check_queue (agent, pair);
   priv_free_all_stun_transactions (pair, NULL);
+
+  /* Clear cross-references between parent and discovered pairs to prevent
+   * dangling pointer access after this pair is freed.
+   */
+  if (pair->succeeded_pair != NULL &&
+      pair->succeeded_pair->discovered_pair == pair) {
+    nice_debug ("Agent %p : clearing discovered_pair pointer in parent pair %p",
+        agent, pair->succeeded_pair);
+    pair->succeeded_pair->discovered_pair = NULL;
+  }
+  if (pair->discovered_pair != NULL &&
+      pair->discovered_pair->succeeded_pair == pair) {
+    nice_debug ("Agent %p : clearing succeeded_pair pointer in discovered pair %p",
+        agent, pair->discovered_pair);
+    pair->discovered_pair->succeeded_pair = NULL;
+  }
+
   g_slice_free (CandidateCheckPair, pair);
 }
 
